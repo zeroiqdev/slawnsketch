@@ -690,17 +690,13 @@ function tick() {
     tiltGroup.rotation.x = tiltX;
     tiltGroup.rotation.y = tiltY;
 
-    // tag box: track the focused panel's real world position (tilt-aware),
-    // above it on desktop, below it on mobile
+    // tag box: sit just below the big center preview image,
+    // on both mobile and desktop
     tagBox.classList.toggle('show', !locked);
-    const front = panels[((activeIndex % COUNT) + COUNT) % COUNT];
-    front.getWorldPosition(_wp);
-    front.getWorldQuaternion(_q);
-    _off.set(0, (mobile() ? -1 : 1) * (PANEL_H / 2 + 0.12), 0).applyQuaternion(_q);
-    _wp.add(_off).project(camera);
+    _wp.set(0, -(PREV_H / 2 + 0.35), 0).project(camera);
     tagBox.style.transform =
       `translate(${(_wp.x * 0.5 + 0.5) * window.innerWidth}px,` +
-      ` ${(-_wp.y * 0.5 + 0.5) * window.innerHeight}px) translate(-50%, ${mobile() ? '0' : '-100%'})`;
+      ` ${(-_wp.y * 0.5 + 0.5) * window.innerHeight}px) translate(-50%, 0)`;
   }
   // billboard: face origin, flip 180° so textures read correctly
   panels.forEach(m => {

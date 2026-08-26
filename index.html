@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SŁAWN, OFF THE CANVAS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #0e0e0e;
+    --fg: #f2f0eb;
+    --muted: rgba(242, 240, 235, 0.5);
+    --line: rgba(242, 240, 235, 0.15);
+    --accent: #f2f0eb;
+  }
+
+  html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ---------- WebGL canvas ---------- */
+  #webgl {
+    position: fixed;
+    inset: 0;
+    display: block;
+    z-index: 1;
+  }
+
+  /* ---------- Header ---------- */
+  header {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 22px 32px;
+    z-index: 20;
+    mix-blend-mode: difference;
+  }
+  .logo {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-decoration: none;
+    color: #fff;
+    display: inline-block;
+    margin-left: -8px;
+    transform: translateY(5px);
+  }
+  nav { display: flex; gap: 28px; }
+  nav a {
+    color: #fff;
+    text-decoration: none;
+    font-size: 12px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    opacity: 0.75;
+    transition: opacity 0.25s ease;
+  }
+  nav a:hover { opacity: 1; }
+
+  .brand-mark {
+    height: 34px;
+    width: auto;
+    display: block;
+  }
+
+  .tagline {
+    position: fixed;
+    top: 64px;
+    left: 32px;
+    z-index: 10;
+    pointer-events: none;
+  }
+  .tagline .line {
+    display: table;
+    background: #f2f0eb;
+    color: #0c0c0c;
+    font-family: 'Space Mono', 'Courier New', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: 0.5px;
+    padding: 6px 10px;
+    white-space: nowrap;
+    margin-bottom: 5px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+
+  /* ---------- Footer info ---------- */
+  .counter {
+    position: fixed;
+    right: 32px;
+    bottom: 34px;
+    font-size: 12px;
+    letter-spacing: 3px;
+    color: var(--muted);
+    z-index: 10;
+    font-variant-numeric: tabular-nums;
+  }
+  .counter b { color: var(--fg); font-weight: 500; }
+
+  /* ---------- Social links ---------- */
+  .socials {
+    position: fixed;
+    left: 32px;
+    bottom: 34px;
+    display: flex;
+    gap: 10px;
+    z-index: 10;
+  }
+  .social-box {
+    width: 32px;
+    height: 32px;
+    background: #f2f0eb;
+    display: grid;
+    place-items: center;
+    color: #0c0c0c;
+    transition: background 0.25s ease;
+  }
+  .social-box:hover {
+    background: #ffffff;
+  }
+  .social-box svg { width: 14px; height: 14px; display: block; }
+
+  /* ---------- Artwork tag box (color picked from the image) ---------- */
+  .tag-box {
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 15;
+    padding: 7px 16px;
+    font-family: 'Space Mono', 'Courier New', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #0c0c0c;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.35s ease;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  }
+  .tag-box.show { opacity: 1; }
+
+  .scroll-hint {
+    position: fixed;
+    bottom: 34px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--muted);
+    z-index: 10;
+    animation: pulse 2.4s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 0.35; }
+    50% { opacity: 0.9; }
+  }
+
+  /* ---------- Preloader (AND2ES style) ---------- */
+  .preloader {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #fff;
+    transform: translateZ(0);
+    will-change: opacity;
+  }
+  .preloader.done { opacity: 0; transition: opacity 0.7s ease; }
+
+  .preloader-text {
+    color: #000;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.012em;
+    line-height: 1.3;
+    margin: 0;
+    max-width: 45rem;
+    text-align: center;
+    padding: 0 24px;
+  }
+  .word { display: inline-block; overflow: hidden; vertical-align: bottom; }
+  .word:not(:last-child)::after { content: "\00a0"; }
+  .char {
+    display: inline-block;
+    transform: translateY(110%);
+    transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  /* ---------- Page entrance ---------- */
+  header, .tagline, .counter, .socials {
+    opacity: 0;
+    transform: translateY(12px);
+    transition: opacity 0.8s ease 0.15s, transform 1s cubic-bezier(0.22, 1, 0.36, 1) 0.15s;
+  }
+  #webgl { opacity: 0; transition: opacity 0.9s ease; }
+  body.loaded header,
+  body.loaded .tagline,
+  body.loaded .counter,
+  body.loaded .socials {
+    opacity: 1;
+    transform: none;
+  }
+  body.loaded #webgl { opacity: 1; }
+
+  /* ---------- Project detail overlay ---------- */
+  .detail {
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    background: rgba(10, 10, 10, 0.94);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.45s ease;
+  }
+  .detail.open { opacity: 1; pointer-events: auto; }
+
+  .detail-card {
+    display: flex;
+    align-items: center;
+    gap: clamp(32px, 5vw, 72px);
+    max-width: min(1080px, 88vw);
+    transform: translateY(48px);
+    transition: transform 0.65s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .detail.open .detail-card { transform: none; }
+
+  .detail-card img {
+    width: min(400px, 36vw);
+    max-height: 72vh;
+    object-fit: contain;
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+  }
+
+  .detail-info { max-width: 420px; }
+  .detail-info h2 {
+    font-family: 'Space Mono', 'Courier New', monospace;
+    font-size: clamp(26px, 3.4vw, 44px);
+    font-weight: 700;
+    letter-spacing: 0;
+    line-height: 1.1;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+  .detail-info .view-case { pointer-events: auto; }
+
+  .detail-close {
+    position: absolute;
+    top: 26px;
+    right: 34px;
+    width: 44px;
+    height: 44px;
+    border: 1px solid var(--line);
+    border-radius: 50%;
+    background: transparent;
+    color: var(--fg);
+    font-size: 18px;
+    cursor: pointer;
+    transition: border-color 0.25s ease, transform 0.3s ease;
+  }
+  .detail-close:hover { border-color: var(--accent); transform: rotate(90deg); }
+
+  /* ---------- Mobile ---------- */
+  @media (max-width: 768px) {
+    header { padding: 14px 18px; }
+    .logo {
+      font-size: 10px;
+      letter-spacing: 0.5px;
+      margin-left: -4px;
+      transform: translateY(3px);
+      max-width: 52vw;
+      line-height: 1.3;
+      white-space: normal;
+    }
+    .brand-mark { height: 24px; }
+
+    .tagline { top: 54px; left: 18px; max-width: calc(100vw - 36px); }
+    .tagline .line { font-size: 8px; padding: 4px 7px; margin-bottom: 4px; letter-spacing: 0.3px; }
+
+    .tag-box { font-size: 9px; padding: 5px 10px; letter-spacing: 1px; }
+
+    .counter { right: 18px; bottom: 20px; font-size: 10px; letter-spacing: 2px; }
+    .socials { left: 18px; bottom: 20px; gap: 8px; }
+    .social-box { width: 30px; height: 30px; }
+    .social-box svg { width: 13px; height: 13px; }
+
+    .detail { align-items: center; }
+    .detail-card {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 22px;
+      max-width: 86vw;
+      max-height: 84vh;
+      overflow-y: auto;
+    }
+    .detail-card img { width: min(230px, 58vw); }
+    .detail-info { max-width: 100%; }
+    .detail-info h2 { font-size: 20px; margin-bottom: 0; }
+    .detail-close { top: 14px; right: 14px; width: 36px; height: 36px; font-size: 15px; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="webgl"></canvas>
+
+<header>
+  <a class="logo" href="#">SŁAWN, OFF THE CANVAS</a>
+  <img class="brand-mark"
+    src="https://res.cloudinary.com/dyg7neetr/image/upload/f_auto,q_auto,w_160/v1787564705/Vector_2x_1_zqtrsl.png"
+    alt="Logo">
+</header>
+
+<p class="tagline">A collection of my favorite Slawn paintings, pulled out of the frame and into a space on the net. Explore the colors, characters, and chaos from a whole new perspective.</p>
+
+<div class="counter"><b id="currentIndex">01</b> / <span id="totalCount"></span></div>
+<div class="tag-box" id="tagBox"><span id="tagName"></span></div>
+
+<div class="socials">
+  <a class="social-box" href="https://x.com/zeroandonehq" target="_blank" rel="noopener" aria-label="X">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+  </a>
+  <a class="social-box" href="https://www.instagram.com/zeroandonehq" target="_blank" rel="noopener" aria-label="Instagram">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+  </a>
+  <a class="social-box" href="https://www.zeroandonesolutions.com" target="_blank" rel="noopener" aria-label="Website">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+      <circle cx="12" cy="12" r="9"/>
+      <ellipse cx="12" cy="12" rx="4.2" ry="9"/>
+      <path d="M3.4 9h17.2M3.4 15h17.2"/>
+    </svg>
+  </a>
+</div>
+
+<div class="detail" id="detail">
+  <button class="detail-close" id="detailClose" aria-label="Close">✕</button>
+  <div class="detail-card">
+    <img id="detailImg" src="" alt="">
+    <div class="detail-info">
+      <h2 id="detailTitle"></h2>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+
+/* ============================================================
+   Parameters extracted from AND2ES production bundle
+   ============================================================ */
+const CL = 'https://res.cloudinary.com/dyg7neetr/image/upload/f_auto,q_auto,w_900/v1787525155';
+const projects = [
+  { title: 'Sad Clown', color: '#a9dcf2', meta: 'Slawn — 2024', img: `${CL}/261b84bf1795861a3a97492df0431eec_qcaxl6.jpg`,
+    desc: 'Acrylic and spray paint on canvas. A study of painted-on sorrow — the grin painted over until it reads as a frown.' },
+  { title: 'Iron Man', color: '#f5d327', meta: 'Slawn — 2024', img: `${CL}/127ce62f7907bcf5cfc26a843dd1ed88_sibdsq.jpg`,
+    desc: 'Acrylic and spray paint on canvas. The hero lifts his own mask to reveal the crying child underneath.' },
+  { title: 'Papa Smurf', color: '#f2a7d8', meta: 'Slawn — 2024', img: `${CL}/39c0b6a29b6487813aec9b76e018b54f_n9ybyi.jpg`,
+    desc: 'Acrylic and spray paint on canvas. Nostalgia run through the wringer — Saturday-morning icons, weeping.' },
+  { title: 'Red Hat', color: '#f2f0eb', meta: 'Slawn — 2024', img: `${CL}/fdef356905bea0229593053bf9ba8649_rtvfzh.jpg`,
+    desc: 'Acrylic and spray paint on canvas. Minimal mark-making, maximal feeling — a figure reduced to hat and frown.' },
+  { title: 'Spinach', color: '#f08c2e', meta: 'Slawn — 2024', img: `${CL}/dadb702caf4083ced14aee300363039a_yyqtdx.jpg`,
+    desc: 'Acrylic and spray paint on canvas. An exploded head of colour, somewhere between a cloud and a thought.' },
+  { title: 'Clark Kent', color: '#2e6fe8', meta: 'Slawn — 2024', img: `${CL}/542d56d821cfecc5d8c2c3730c2d91a9_dp4s80.jpg`,
+    desc: 'Acrylic and spray paint on canvas. Caped, crushed, and crying blue tears into the night.' },
+  { title: 'Cheshire', color: '#c39be0', meta: 'Slawn — 2024', img: `${CL}/64b5b0ad7b19c6a0510be2e7f09c5182_pkhyuq.jpg`,
+    desc: 'Acrylic and spray paint on canvas. A many-eyed smile dissolving into drips — the joke written on the wall.' },
+];
+
+const COUNT   = projects.length;
+const STEP    = Math.PI * 2 / COUNT;      // y  — angle per slide (rad)
+let   RADIUS  = window.innerWidth <= 768 ? 1.8 : 3.6; // wider desktop spread
+let   CAM_Z   = 8;                                    // Wp — camera distance
+const PANEL_H = 0.68;                     // So — ring image height
+let   PREV_H  = window.innerWidth <= 768 ? 2.4 : 3.1;   // ts — center preview
+const PREV_W_FALLBACK = 2.5;              // Hp
+
+/* ============================================================
+   Renderer / scene — mirrors their $() setup
+   ============================================================ */
+const canvas = document.getElementById('webgl');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setClearColor(0x0e0e0e, 1);   // their bundle: white — ours stays dark
+
+const scene  = new THREE.Scene();
+const tiltGroup = new THREE.Group();          // _ — receives mouse tilt
+const orbitGroup = new THREE.Group();         // g — receives ring rotation
+tiltGroup.add(orbitGroup);
+scene.add(tiltGroup);
+
+const camera = new THREE.PerspectiveCamera(
+  45, window.innerWidth / window.innerHeight, 0.1, 100
+);
+camera.position.z = CAM_Z;
+
+// 180° Y-flip quaternion applied after lookAt (their F)
+const FLIP = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI);
+
+/* ============================================================
+   Textures + panels — sized by real image aspect, like theirs
+   ============================================================ */
+const loader = new THREE.TextureLoader();
+loader.crossOrigin = 'anonymous';
+
+const loadTexture = (url) => new Promise((resolve) => {
+  loader.load(url,
+    (t) => { t.colorSpace = THREE.SRGBColorSpace; resolve(t); },
+    undefined,
+    () => {
+      // fallback: solid placeholder so one bad URL can't kill the scene
+      const cv = document.createElement('canvas');
+      cv.width = cv.height = 2;
+      const ctx = cv.getContext('2d');
+      ctx.fillStyle = '#3a3a3a';
+      ctx.fillRect(0, 0, 2, 2);
+      resolve(new THREE.CanvasTexture(cv));
+    }
+  );
+});
+
+/* ============================================================
+   Minimal tween engine (replaces the GSAP dependency)
+   Supports: object or array of objects, function values,
+   duration (s), delay (s), stagger (n | {amount}), ease power2.out,
+   onComplete (fires after the last target finishes)
+   ============================================================ */
+function tween(targets, vars) {
+  const list = Array.isArray(targets) ? targets : [targets];
+  const reserved = ['duration', 'delay', 'stagger', 'ease', 'onComplete'];
+  const keys = Object.keys(vars).filter(k => !reserved.includes(k));
+  const dur = (vars.duration ?? 1) * 1000;
+  const numericDelay = typeof vars.delay === 'number' ? vars.delay : 0;
+  const baseDelay = numericDelay * 1000;
+  const stagger = vars.stagger;
+  const staggerEach = typeof stagger === 'number'
+    ? stagger * 1000
+    : (stagger && list.length > 1 ? (stagger.amount * 1000) / (list.length - 1) : 0);
+
+  list.forEach((obj, i) => {
+    const delay = baseDelay + i * staggerEach +
+      (typeof vars.delay === 'function' ? vars.delay(i) * 1000 : 0);
+    const starts = {}, ends = {};
+    keys.forEach(k => {
+      const v = vars[k];
+      ends[k] = typeof v === 'function' ? v(i, obj, list) : v;
+      starts[k] = obj[k];
+    });
+    const t0 = performance.now() + delay;
+    function step(now) {
+      const t = (now - t0) / dur;
+      if (t >= 0) {
+        const e = 1 - Math.pow(1 - Math.min(t, 1), 3);   // power2.out
+        keys.forEach(k => { obj[k] = starts[k] + (ends[k] - starts[k]) * e; });
+      }
+      if (t < 1) {
+        requestAnimationFrame(step);
+      } else if (vars.onComplete && i === list.length - 1) {
+        vars.onComplete();
+      }
+    }
+    requestAnimationFrame(step);
+  });
+}
+
+const textures = await Promise.all(projects.map(p => loadTexture(p.img)));
+
+const panels = [];        // d
+const scaleTargets = [];  // h — {x, y} per panel
+
+projects.forEach((_, i) => {
+  const tex = textures[i];
+  // se / ye: width tracks the image's own aspect, height fixed at PANEL_H
+  const sw = tex.image.width && tex.image.height
+    ? PANEL_H * (tex.image.width / tex.image.height)
+    : 0.52;
+  const sh = PANEL_H;
+  scaleTargets.push({ x: sw, y: sh });
+
+  const mat = new THREE.MeshBasicMaterial({
+    map: tex,
+    transparent: true,
+    alphaTest: 0.01,
+    opacity: 0,
+    side: THREE.DoubleSide,
+  });
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), mat);
+  // normal depth testing: panels behind the focused one are properly hidden
+
+  // collapsed start: stacked at ring depth (their c + W*0.001) so the
+  // revolution carries every panel — nothing lingers near the axis
+  mesh.scale.set(sw * 2.5, sh * 2.5, 1);
+  mesh.position.set(0, 0, RADIUS + i * 0.001);
+  orbitGroup.add(mesh);
+  panels.push(mesh);
+});
+
+/* ============================================================
+   Center preview — fixed large image (3.1) that crossfades to
+   whichever slide is in focus; ring cards flow around/behind it
+   ============================================================ */
+const previewMat = new THREE.MeshBasicMaterial({
+  map: textures[0],
+  transparent: true,
+  alphaTest: 0.01,
+  opacity: 0,
+});
+const preview = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), previewMat);
+scene.add(preview);   // scene-level: does NOT rotate with the ring
+
+function setPreview(index) {
+  const tex = textures[index];
+  const aspect = tex.image.width / tex.image.height;
+  previewMat.map = tex;
+  previewMat.needsUpdate = true;
+  preview.scale.set(PREV_H * aspect, PREV_H, 1);   // their Q()
+}
+setPreview(0);
+
+/* ============================================================
+   State — same names/logic as the original loop
+   ============================================================ */
+let targetRot = 0;    // P
+let currentRot = 0;   // A
+let tiltX = 0, tiltXT = 0;   // x / T  (lerp .08)
+let tiltY = 0, tiltYT = 0;   // K / w  (lerp .05)
+let activeIndex = 0;  // C
+let locked = true;    // G — input disabled until intro completes
+let introRunning = false;
+
+const TILT_AMP = 0.12;
+
+/* ============================================================
+   Input
+   ============================================================ */
+window.addEventListener('wheel', (e) => {
+  if (locked) return;
+  targetRot += e.deltaY * 0.002;
+}, { passive: true });
+
+let dragging = false, startX = 0, startTarget = 0, moved = 0;
+const dragSensitivity = () => 5 / window.innerWidth;   // their at()
+
+canvas.addEventListener('pointerdown', (e) => {
+  if (locked) return;
+  dragging = true;
+  startX = e.clientX;
+  startTarget = targetRot;
+  moved = 0;
+});
+window.addEventListener('pointermove', (e) => {
+  // mouse tilt — normalized -0.5..0.5, inverted X-axis like the original
+  const nx = e.clientX / window.innerWidth - 0.5;
+  const ny = e.clientY / window.innerHeight - 0.5;
+  tiltXT = ny * TILT_AMP * 2;
+  tiltYT = -nx * TILT_AMP * 2;
+
+  if (dragging && !locked) {
+    const dx = e.clientX - startX;
+    moved = dx;
+    targetRot = startTarget + dx * dragSensitivity();
+  } else if (!locked) {
+    canvas.style.cursor = pickPanel(e.clientX, e.clientY) >= 0 ? 'pointer' : 'grab';
+  }
+});
+window.addEventListener('pointerup', (e) => {
+  if (!dragging) return;
+  dragging = false;
+  canvas.style.cursor = 'grab';
+  if (locked) return;
+  if (Math.abs(moved) > 5) {
+    targetRot = Math.round(targetRot / STEP) * STEP;   // snap to slot
+  } else {
+    const hit = pickPanel(e.clientX, e.clientY);
+    if (hit >= 0) openDetail(hit);                     // tap = open project
+  }
+});
+
+/* ---------- Picking (their raycast handler) ---------- */
+const raycaster = new THREE.Raycaster();
+const pointerNDC = new THREE.Vector2();
+
+function pickPanel(clientX, clientY) {
+  pointerNDC.set(
+    (clientX / window.innerWidth) * 2 - 1,
+    -(clientY / window.innerHeight) * 2 + 1
+  );
+  raycaster.setFromCamera(pointerNDC, camera);
+  const hits = raycaster.intersectObjects(panels);
+  return hits.length ? panels.indexOf(hits[0].object) : -1;
+}
+
+/* ---------- Detail overlay ---------- */
+const detailEl    = document.getElementById('detail');
+const detailImg   = document.getElementById('detailImg');
+const detailTitle = document.getElementById('detailTitle');
+
+function openDetail(i) {
+  const p = projects[i];
+  detailImg.src = p.img.replace('w_900', 'w_1400');   // higher-res variant
+  detailImg.alt = p.title;
+  detailTitle.textContent = p.title;
+  detailEl.classList.add('open');
+
+  // rotate the clicked panel to the front behind the overlay
+  const current = Math.round(targetRot / STEP);
+  const delta = ((i - current) % COUNT + COUNT) % COUNT;
+  const shortest = delta > COUNT / 2 ? delta - COUNT : delta;
+  targetRot = (current + shortest) * STEP;
+}
+
+function closeDetail() {
+  detailEl.classList.remove('open');
+}
+document.getElementById('detailClose').addEventListener('click', closeDetail);
+detailEl.addEventListener('click', (e) => {
+  if (e.target === detailEl) closeDetail();   // backdrop click
+});
+
+window.addEventListener('keydown', (e) => {
+  if (locked) return;
+  if (e.key === 'ArrowRight') targetRot -= STEP;
+  if (e.key === 'ArrowLeft')  targetRot += STEP;
+});
+
+/* ============================================================
+   UI binding
+   ============================================================ */
+const idxEl   = document.getElementById('currentIndex');
+const tagBox  = document.getElementById('tagBox');
+const tagName = document.getElementById('tagName');
+document.getElementById('totalCount').textContent =
+  String(COUNT).padStart(2, '0');
+tagName.textContent = projects[0].title;
+tagBox.style.background = projects[0].color;
+
+function syncActive() {
+  // panel i faces the camera when rotation.y === -i·STEP, hence the negation
+  const raw = Math.round(-currentRot / STEP);
+  const wrapped = ((raw % COUNT) + COUNT) % COUNT;
+  if (wrapped !== activeIndex) {
+    activeIndex = wrapped;
+    idxEl.textContent   = String(wrapped + 1).padStart(2, '0');
+    tagName.textContent = projects[wrapped].title;
+    tagBox.style.background = projects[wrapped].color;
+    setPreview(wrapped);
+  }
+}
+
+/* ============================================================
+   Render loop — lerp factors 0.08 / 0.08 / 0.05, billboarded
+   ============================================================ */
+const _wp = new THREE.Vector3();
+const _q  = new THREE.Quaternion();
+const _off = new THREE.Vector3();
+const mobile = () => window.innerWidth <= 768;
+
+function tick() {
+  requestAnimationFrame(tick);
+  if (!locked) {
+    currentRot += (targetRot - currentRot) * 0.08;
+    tiltX += (tiltXT - tiltX) * 0.08;
+    tiltY += (tiltYT - tiltY) * 0.05;
+  }
+  if (!locked) {
+    // gated on `locked` (true from load until the intro spin lands) —
+    // otherwise these run during the preloader and leak the preview in
+    orbitGroup.rotation.y = currentRot;
+    tiltGroup.rotation.x = tiltX;
+    tiltGroup.rotation.y = tiltY;
+
+    // tag box: track the focused panel's real world position (tilt-aware),
+    // above it on desktop, below it on mobile
+    tagBox.classList.toggle('show', !locked);
+    const front = panels[((activeIndex % COUNT) + COUNT) % COUNT];
+    front.getWorldPosition(_wp);
+    front.getWorldQuaternion(_q);
+    _off.set(0, (mobile() ? -1 : 1) * (PANEL_H / 2 + 0.12), 0).applyQuaternion(_q);
+    _wp.add(_off).project(camera);
+    tagBox.style.transform =
+      `translate(${(_wp.x * 0.5 + 0.5) * window.innerWidth}px,` +
+      ` ${(-_wp.y * 0.5 + 0.5) * window.innerHeight}px) translate(-50%, ${mobile() ? '0' : '-100%'})`;
+  }
+  // billboard: face origin, flip 180° so textures read correctly
+  panels.forEach(m => {
+    m.lookAt(0, 0, 0);
+    m.quaternion.multiply(FLIP);
+  });
+
+  syncActive();
+  renderer.render(scene, camera);
+}
+
+window.addEventListener('resize', () => {
+  RADIUS = window.innerWidth <= 768 ? 1.8 : 3.6;
+  PREV_H = window.innerWidth <= 768 ? 2.4 : 3.1;
+  camera.position.z = CAM_Z;
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  setPreview(((activeIndex % COUNT) + COUNT) % COUNT);
+});
+
+tick();
+
+/* ---------- Preloader — unchanged, then their exact intro timeline (fe())
+   ============================================================ */
+// split the tagline into lines, each line sharing one horizontal box —
+// colors echo the artwork tag palette
+const taglineEl = document.querySelector('.tagline');
+const taglineLines = [
+  { text: 'A collection of my favorite Slawn',  color: '#a9dcf2' },
+  { text: 'paintings, pulled out of the frame', color: '#f5d327' },
+  { text: 'and into a space on the net. Explore', color: '#f2a7d8' },
+  { text: 'the colors, characters, and chaos',  color: '#f08c2e' },
+  { text: 'from a whole new perspective.',      color: '#c39be0' },
+];
+taglineEl.innerHTML = taglineLines
+  .map(l => `<span class="line" style="background:${l.color}">${l.text}</span>`).join('');
+
+const preloaderText = "Somewhere between art, space, and the internet.";
+
+const pre = document.createElement('div');
+pre.className = 'preloader';
+const p = document.createElement('p');
+p.className = 'preloader-text';
+preloaderText.split(' ').forEach(word => {
+  const w = document.createElement('span');
+  w.className = 'word';
+  [...word].forEach(ch => {
+    const c = document.createElement('span');
+    c.className = 'char';
+    c.textContent = ch;
+    w.appendChild(c);
+  });
+  p.appendChild(w);
+});
+pre.appendChild(p);
+document.body.appendChild(pre);
+
+const chars = p.querySelectorAll('.char');
+chars.forEach((c, i) => {
+  setTimeout(() => { c.style.transform = 'none'; }, 300 + i * 22);
+});
+
+const totalReveal = 300 + chars.length * 22 + 900;
+setTimeout(() => {
+  pre.classList.add('done');
+  document.body.classList.add('loaded');
+  setTimeout(() => pre.remove(), 800);
+
+  playIntro();
+}, totalReveal);
+
+function playIntro() {
+  introRunning = true;
+
+  // stagger runs BACK-TO-FRONT so the Sad Clown (slide 0) materializes
+  // and flies out last, instead of persisting from the start
+  const rev = (i) => COUNT - 1 - i;
+
+  // during the stacked blink the panels must draw over each other,
+  // not depth-occlude (all sit at the same z) — restore depth for flight
+  panels.forEach(m => { m.material.depthTest = false; m.renderOrder = 0; });
+  const blinkTimers = panels.map((m, i) => {
+    // promote each panel to the top of the paint order as its fade begins,
+    // so every image visibly flips over the previous one
+    const t = (rev(i) * 0.8) / (COUNT - 1);
+    return setTimeout(() => { m.renderOrder = 10 + rev(i); }, t * 1000);
+  });
+  // once the fly-out starts, restore normal depth-sorted rendering
+  setTimeout(() => {
+    blinkTimers.forEach(clearTimeout);
+    panels.forEach(m => { m.material.depthTest = true; m.renderOrder = 0; });
+  }, 1400);
+
+  // 0. pre-flyout: stacked images blink in one-by-one (their exact tween:
+  //    opacity 1, duration .8, stagger {amount: .8}, power2.out)
+  tween(panels.map(m => m.material), {
+    opacity: 1, duration: 0.8,
+    delay: (i) => (rev(i) * 0.8) / (COUNT - 1),
+    ease: 'power2.out',
+  });
+
+  // 1. fly out to ring positions while scaling down to real size
+  const de = 1.2 + 0.2;   // their delay constant
+  tween(panels.map(m => m.position), {
+    x: (i) => Math.sin(STEP * i) * RADIUS,
+    z: (i) => Math.cos(STEP * i) * RADIUS,
+    duration: 1.55,
+    delay: (i) => de + rev(i) * 0.04,
+    ease: 'power2.out',
+  });
+  tween(panels.map(m => m.scale), {
+    x: (i) => scaleTargets[i].x,
+    y: (i) => scaleTargets[i].y,
+    duration: 1,
+    delay: (i) => de + rev(i) * 0.04,
+    ease: 'power2.out',
+  });
+
+  // 3. full revolution landing on slide 0 — unlocks input on complete
+  tween(orbitGroup.rotation, {
+    y: -(STEP * COUNT),
+    duration: 3, delay: de, ease: 'power2.out',
+    onComplete() {
+      currentRot = orbitGroup.rotation.y;
+      targetRot = currentRot;
+      activeIndex = ((Math.round(currentRot / STEP)) % COUNT + COUNT) % COUNT;
+      locked = false;
+      introRunning = false;
+    },
+  });
+
+  // 4. the big center image fades in mid-spin (their te = de + 0.9)
+  tween(previewMat, { opacity: 1, duration: 0.5, delay: de + 0.9, ease: 'power2.out' });
+}
+</script>
+</body>
+</html>
